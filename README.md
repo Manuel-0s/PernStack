@@ -27,7 +27,6 @@ cd PernStack
 Instala las dependencias del backend y del frontend:
 
 ```powershell
-cd backend
 npm install
 
 cd ../frontend
