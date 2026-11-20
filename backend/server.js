@@ -12,10 +12,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json()); // parse JSON request bodies
 app.use(curs()); 
 app.use(helmet()); // Security middleware
+
 app.use(morgan('dev')); // log HTTP requests
-app.use(express.json()); // parse JSON request bodies
 app.use('/api/products', productRoutes);
 
 async function initDB() {

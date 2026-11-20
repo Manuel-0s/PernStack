@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-const BASE_URL = 'https://localhost:3000';
+const BASE_URL = 'http://localhost:3000';
 export const useProductStore = create((set) => ({
     products: [],
     loading: false,
     error: null,
 
     fetchProducts: async () => {
-        set({ loading: true, error: null });
+        set({ loading: true});
         try {
             const response = await axios.get(`${BASE_URL}/api/products`);
             set({ products: response.data.data, error: false });
