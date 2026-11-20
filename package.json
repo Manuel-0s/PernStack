@@ -1,0 +1,33 @@
+{
+  "name": "pernstack",
+  "version": "1.0.0",
+  "description": "Proyecto inicial para desarrollar un catalogo de productos con React, Express y PostgreSQL.",
+  "main": "backend/server.js",
+  "scripts": {
+    "dev": "nodemon backend/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Manuel-0s/PernStack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Manuel-0s/PernStack/issues"
+  },
+  "homepage": "https://github.com/Manuel-0s/PernStack#readme",
+  "dependencies": {
+    "@arcjet/node": "^1.16.0",
+    "@neondatabase/serverless": "^1.2.1",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "morgan": "^1.12.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
