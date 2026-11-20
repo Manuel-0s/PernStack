@@ -159,3 +159,9 @@ Vista vacía en React:
 - Si el backend o la base de datos responde con un error, se muestra un mensaje de error en la interfaz.
 - Si no existe ninguna respuesta exitosa, se mantiene una lista de productos vacía.
 - Si el usuario actualiza la página, puede pulsar el botón de refrescar para repetir la consulta.
+
+## Avance del tablero
+
+Estado del tablero en GitHub Projects tras liberar **HU01** (`#8`, PR `#13`, etiqueta `u4-j1`):
+
+![Avance del tablero - HU01 Liberada](docs/tablero-hu01.png)
