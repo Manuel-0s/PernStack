@@ -231,48 +231,46 @@ if (!parsed.success) {
 "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js"
 ```
 
-3. Se crearon las pruebas en `backend/tests/products.test.js` validando ambos casos con `expect(...).toMatchObject(...)`:
+3. Se crearon las pruebas en `backend/tests/products.test.js` validando ambos casos con `expect(...).toMatchObject(...)` e incluyendo `afterAll` para eliminar el registro de prueba de Neon al finalizar:
 
 ```javascript
 import request from "supertest";
 import app from "../server.js";
 
 describe("POST /api/products", () => {
-    it("debe responder 201 al registrar un producto válido", async () => {
-        const res = await request(app)
-            .post("/api/products")
-            .send({
-                name: "Mouse Gamer Test",
-                price: 599.99,
-                image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
-            });
-
-        expect({ status: res.statusCode, body: res.body }).toMatchObject({
-            status: 201,
-            body: {
-                success: true,
-                data: { id: expect.any(Number), name: "Mouse Gamer Test" },
-            },
-        });
+  it("debe responder 201 al registrar un producto válido", async () => {
+    const res = await request(app).post("/api/products").send({
+      name: "Mouse Gamer Test",
+      price: 599.99,
+      image:
+        "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
     });
 
-    it("debe responder 400 cuando el precio es inválido y no crear registro", async () => {
-        const res = await request(app)
-            .post("/api/products")
-            .send({
-                name: "Producto Inválido",
-                price: -50,
-                image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
-            });
-
-        expect({ status: res.statusCode, body: res.body }).toMatchObject({
-            status: 400,
-            body: {
-                success: false,
-                errors: { price: expect.any(Array) },
-            },
-        });
+    expect({ status: res.statusCode, body: res.body }).toMatchObject({
+      status: 201,
+      body: {
+        success: true,
+        data: { id: expect.any(Number), name: "Mouse Gamer Test" },
+      },
     });
+  });
+
+  it("debe responder 400 cuando el precio es inválido y no crear registro", async () => {
+    const res = await request(app).post("/api/products").send({
+      name: "Producto Inválido",
+      price: -50,
+      image:
+        "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
+    });
+
+    expect({ status: res.statusCode, body: res.body }).toMatchObject({
+      status: 400,
+      body: {
+        success: false,
+        errors: { price: expect.any(Array) },
+      },
+    });
+  });
 });
 ```
 
@@ -283,3 +281,96 @@ npm test
 Captura de las pruebas automatizadas con Jest y Supertest:
 
 ![Pruebas automatizadas con Jest y Supertest](docs/img-5.png)
+
+### Formulario y modal de alta en React
+
+1. En `frontend/src/store/useProductStore.js` se agregó `formData`, `setFormData`, `resetForm` y `addProduct` para enviar la petición `POST /api/products`, recargar el catálogo y mostrar notificaciones con `react-hot-toast`:
+
+```javascript
+addProduct: async (e) => {
+    e.preventDefault();
+    set({ loading: true });
+
+    try {
+        const { formData } = get();
+        await axios.post(`${BASE_URL}/api/products`, formData);
+        await get().fetchProducts();
+        get().resetForm();
+        toast.success('Product added successfully');
+        document.getElementById('add_product_modal')?.close();
+    } catch (err) {
+        const message = err.response?.data?.message || 'Something went wrong';
+        toast.error(message);
+    } finally {
+        set({ loading: false });
+    }
+},
+```
+
+2. Se creó el componente `frontend/src/components/AddProductModal.jsx` con el diálogo modal de DaisyUI (`id="add_product_modal"`) y los campos `name`, `price` e `image`:
+
+```jsx
+<dialog id="add_product_modal" className="modal">
+  <div className="modal-box">
+    <h3 className="font-bold text-xl mb-8">Add New Product</h3>
+    <form onSubmit={addProduct} className="space-y-6">
+      {/* Inputs controlados con formData y setFormData */}
+      <button type="submit" className="btn btn-primary" disabled={!formData.name || !formData.price || !formData.image || loading}>
+        Add Product
+      </button>
+    </form>
+  </div>
+</dialog>
+```
+
+3. En `frontend/src/pages/HomePage.jsx` se conectó el botón **Add Product** a `showModal()` y se renderizó `<AddProductModal />`:
+
+```jsx
+<button
+  className='btn btn-primary'
+  onClick={() => document.getElementById('add_product_modal').showModal()}
+>
+  <PlusCircleIcon className='size-5 mr-2'/>
+  Add Product
+</button>
+<AddProductModal />
+```
+
+4. En `frontend/src/App.jsx` se agregó `<Toaster />` para mostrar las alertas visuales de éxito o error:
+
+```jsx
+<Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/product/:id" element={<ProductPage />} />
+</Routes>
+<Toaster />
+```
+
+
+Captura del modal de alta con los datos del producto:
+
+![Modal de alta de producto](docs/img-6.png)
+
+Captura del catálogo actualizado tras registrar el producto:
+
+![Catálogo actualizado con el nuevo producto](docs/img-7.png)
+
+
+### Prueba de validación (`400 Bad Request`) con REST Client
+
+Para probar el endpoint `POST /api/products` con un precio inválido sin crear registros en PostgreSQL, se utilizó la extensión **REST Client** (`humao.rest-client`) en VS Code enviando un precio negativo (`-50`):
+
+```http
+POST http://localhost:3000/api/products
+Content-Type: application/json
+
+{
+  "name": "Producto Inválido",
+  "price": -50,
+  "image": "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500"
+}
+```
+
+Captura de la respuesta `400 Bad Request` devuelta por Zod:
+
+![Validación 400 Bad Request con REST Client](docs/img-8.png)

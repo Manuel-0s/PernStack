@@ -1,7 +1,16 @@
 import request from "supertest";
 import app from "../server.js";
+import { sql } from "../config/db.js";
 
 describe("POST /api/products", () => {
+    let createdProductId = null;
+
+    afterAll(async () => {
+        if (createdProductId) {
+            await sql`DELETE FROM products WHERE id = ${createdProductId}`;
+        }
+    });
+
     it("debe responder 201 al registrar un producto válido", async () => {
         const res = await request(app)
             .post("/api/products")
@@ -10,6 +19,8 @@ describe("POST /api/products", () => {
                 price: 599.99,
                 image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
             });
+
+        createdProductId = res.body?.data?.id ?? null;
 
         expect({ status: res.statusCode, body: res.body }).toMatchObject({
             status: 201,
