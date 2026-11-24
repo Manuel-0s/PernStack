@@ -36,8 +36,12 @@ async function initDB() {
     }
 }
 
-initDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
+if (process.env.NODE_ENV !== 'test') {
+    initDB().then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
     });
-});
+}
+
+export default app;

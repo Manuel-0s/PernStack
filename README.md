@@ -34,7 +34,7 @@ npm install
 
 ## Configuracion
 
-El equipo comparte la configuracion de PostgreSQL/Neon. 
+El equipo comparte la configuracion de PostgreSQL/Neon.
 
 ## Ejecutar el frontend
 
@@ -68,33 +68,33 @@ para ver los productos disponibles y seleccionar uno para revisar sus detalles.
 
 En Postman crea una solicitud con los siguientes datos:
 
-| Campo | Valor |
-| --- | --- |
-| Método | `GET` |
-| URL | `http://localhost:3000/api/products` |
-| Body | No aplica |
+| Campo  | Valor                                |
+| ------ | ------------------------------------ |
+| Método | `GET`                                |
+| URL    | `http://localhost:3000/api/products` |
+| Body   | No aplica                            |
 
 Enviar la solicitud debe devolver el estado `200 OK`. La respuesta contiene un arreglo de productos dentro de `data`:
 
 ```json
 {
-    "success": true,
-    "data": [
-        {
-            "id": 1,
-            "name": "Teclado Mecánico RGB",
-            "image": "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&auto=format&fit=crop&q=60",
-            "price": "1299.99",
-            "created_at": "2026-11-20T08:36:12.423Z"
-        },
-        {
-            "id": 2,
-            "name": "Monitor Gamer 27\"",
-            "image": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60",
-            "price": "4599.00",
-            "created_at": "2026-11-20T08:36:12.423Z"
-        }
-    ]
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Teclado Mecánico RGB",
+      "image": "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&auto=format&fit=crop&q=60",
+      "price": "1299.99",
+      "created_at": "2026-11-20T08:36:12.423Z"
+    },
+    {
+      "id": 2,
+      "name": "Monitor Gamer 27\"",
+      "image": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60",
+      "price": "4599.00",
+      "created_at": "2026-11-20T08:36:12.423Z"
+    }
+  ]
 }
 ```
 
@@ -131,7 +131,6 @@ Vista vacía en React:
 
 ![Catálogo sin productos registrados](docs/img-4.png)
 
-
 ### Flujo principal
 
 1. El usuario abre la aplicación en `http://localhost:5173`.
@@ -165,3 +164,213 @@ Vista vacía en React:
 Estado del tablero en GitHub Projects tras liberar **HU01** (`#8`, PR `#13`, etiqueta `u4-j1`):
 
 ![Avance del tablero - HU01 Liberada](docs/tablero-hu01.png)
+
+## HU02: Registrar un producto
+
+Como responsable del catálogo, quiero registrar un producto para que aparezca en la lista.
+
+### Dependencias agregadas
+
+- **Validación (DTO):** `zod`
+- **Pruebas automatizadas:** `jest`, `supertest`, `cross-env` (`devDependencies`)
+  - Aunque `cross-env` no aparece en la tabla base de la práctica, se incluye como apoyo en desarrollo para definir `NODE_ENV=test` en el script `npm test` de forma compatible entre Windows (PowerShell/CMD), macOS y Linux.
+
+```powershell
+npm install zod
+npm install -D jest supertest cross-env
+```
+
+### Validación con DTO y Zod
+
+- Se definió `createProductDto` en `backend/dtos/productDto.js` para validar:
+  - `name`: cadena sin espacios y no vacía (`trim().min(1)`).
+  - `price`: número positivo (`coerce.number().positive()`).
+  - `image`: URL válida (`trim().url()`).
+
+```javascript
+export const createProductDto = z.object({
+  name: z
+    .string({ required_error: "El nombre es obligatorio" })
+    .trim()
+    .min(1, "El nombre no puede estar vacío"),
+  price: z.coerce
+    .number({ invalid_type_error: "El precio debe ser numérico" })
+    .positive("El precio debe ser un número positivo"),
+  image: z
+    .string({ required_error: "La imagen es obligatoria" })
+    .trim()
+    .url("La imagen debe ser una URL válida"),
+});
+```
+
+- El controlador `createProduct` en `backend/controllers/productController.js` valida `req.body` con `safeParse`:
+  - Si la validación falla, responde **`400 Bad Request`** sin insertar en PostgreSQL.
+  - Si es válida, inserta mediante consulta parametrizada en Neon y responde **`201 Created`**.
+
+```javascript
+const parsed = createProductDto.safeParse(req.body);
+
+if (!parsed.success) {
+  return res.status(400).json({
+    success: false,
+    message: "Datos de producto inválidos",
+    errors: parsed.error.flatten().fieldErrors,
+  });
+}
+```
+
+### Pruebas automatizadas con Jest y Supertest
+
+- **Jest** ejecuta la suite de pruebas y evalúa las aserciones (`describe`, `it`, `expect`).
+- **Supertest** envía peticiones HTTP simuladas directamente contra la instancia `app` de Express en memoria, sin levantar el servidor en un puerto.
+
+1. Se exportó `app` en `backend/server.js` y se condicionó `app.listen()` a `process.env.NODE_ENV !== 'test'`.
+2. Se agregó el script `"test"` en `package.json`:
+
+```json
+"test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js"
+```
+
+3. Se crearon las pruebas en `backend/tests/products.test.js` validando ambos casos con `expect(...).toMatchObject(...)` e incluyendo `afterAll` para eliminar el registro de prueba de Neon al finalizar:
+
+```javascript
+import request from "supertest";
+import app from "../server.js";
+
+describe("POST /api/products", () => {
+  it("debe responder 201 al registrar un producto válido", async () => {
+    const res = await request(app).post("/api/products").send({
+      name: "Mouse Gamer Test",
+      price: 599.99,
+      image:
+        "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
+    });
+
+    expect({ status: res.statusCode, body: res.body }).toMatchObject({
+      status: 201,
+      body: {
+        success: true,
+        data: { id: expect.any(Number), name: "Mouse Gamer Test" },
+      },
+    });
+  });
+
+  it("debe responder 400 cuando el precio es inválido y no crear registro", async () => {
+    const res = await request(app).post("/api/products").send({
+      name: "Producto Inválido",
+      price: -50,
+      image:
+        "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500",
+    });
+
+    expect({ status: res.statusCode, body: res.body }).toMatchObject({
+      status: 400,
+      body: {
+        success: false,
+        errors: { price: expect.any(Array) },
+      },
+    });
+  });
+});
+```
+
+```powershell
+npm test
+```
+
+Captura de las pruebas automatizadas con Jest y Supertest:
+
+![Pruebas automatizadas con Jest y Supertest](docs/img-5.png)
+
+### Formulario y modal de alta en React
+
+1. En `frontend/src/store/useProductStore.js` se agregó `formData`, `setFormData`, `resetForm` y `addProduct` para enviar la petición `POST /api/products`, recargar el catálogo y mostrar notificaciones con `react-hot-toast`:
+
+```javascript
+addProduct: async (e) => {
+    e.preventDefault();
+    set({ loading: true });
+
+    try {
+        const { formData } = get();
+        await axios.post(`${BASE_URL}/api/products`, formData);
+        await get().fetchProducts();
+        get().resetForm();
+        toast.success('Product added successfully');
+        document.getElementById('add_product_modal')?.close();
+    } catch (err) {
+        const message = err.response?.data?.message || 'Something went wrong';
+        toast.error(message);
+    } finally {
+        set({ loading: false });
+    }
+},
+```
+
+2. Se creó el componente `frontend/src/components/AddProductModal.jsx` con el diálogo modal de DaisyUI (`id="add_product_modal"`) y los campos `name`, `price` e `image`:
+
+```jsx
+<dialog id="add_product_modal" className="modal">
+  <div className="modal-box">
+    <h3 className="font-bold text-xl mb-8">Add New Product</h3>
+    <form onSubmit={addProduct} className="space-y-6">
+      {/* Inputs controlados con formData y setFormData */}
+      <button type="submit" className="btn btn-primary" disabled={!formData.name || !formData.price || !formData.image || loading}>
+        Add Product
+      </button>
+    </form>
+  </div>
+</dialog>
+```
+
+3. En `frontend/src/pages/HomePage.jsx` se conectó el botón **Add Product** a `showModal()` y se renderizó `<AddProductModal />`:
+
+```jsx
+<button
+  className='btn btn-primary'
+  onClick={() => document.getElementById('add_product_modal').showModal()}
+>
+  <PlusCircleIcon className='size-5 mr-2'/>
+  Add Product
+</button>
+<AddProductModal />
+```
+
+4. En `frontend/src/App.jsx` se agregó `<Toaster />` para mostrar las alertas visuales de éxito o error:
+
+```jsx
+<Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/product/:id" element={<ProductPage />} />
+</Routes>
+<Toaster />
+```
+
+
+Captura del modal de alta con los datos del producto:
+
+![Modal de alta de producto](docs/img-6.png)
+
+Captura del catálogo actualizado tras registrar el producto:
+
+![Catálogo actualizado con el nuevo producto](docs/img-7.png)
+
+
+### Prueba de validación (`400 Bad Request`) con REST Client
+
+Para probar el endpoint `POST /api/products` con un precio inválido sin crear registros en PostgreSQL, se utilizó la extensión **REST Client** (`humao.rest-client`) en VS Code enviando un precio negativo (`-50`):
+
+```http
+POST http://localhost:3000/api/products
+Content-Type: application/json
+
+{
+  "name": "Producto Inválido",
+  "price": -50,
+  "image": "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500"
+}
+```
+
+Captura de la respuesta `400 Bad Request` devuelta por Zod:
+
+![Validación 400 Bad Request con REST Client](docs/img-8.png)

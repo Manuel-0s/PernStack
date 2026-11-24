@@ -1,4 +1,5 @@
 import { sql } from "../config/db.js";
+import { createProductDto } from "../dtos/productDto.js";
 //CRUD operations for products
 
 export const getAllProducts = async (req, res) => {
@@ -31,11 +32,17 @@ export const getProduct = async (req, res) => {
 }
 
 export const createProduct = async (req, res) => {  
-    const { name, image, price } = req.body;
+    const parsed = createProductDto.safeParse(req.body);
 
-    if (!name || !image || !price) {
-        return res.status(400).json({ success: false, message: 'All fields are required' });
+    if (!parsed.success) {
+        return res.status(400).json({
+            success: false,
+            message: "Datos de producto inválidos",
+            errors: parsed.error.flatten().fieldErrors,
+        });
     }
+
+    const { name, image, price } = parsed.data;
 
     try {
         const product = await sql`
