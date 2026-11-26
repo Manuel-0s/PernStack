@@ -411,22 +411,32 @@ Como responsable del catálogo, quiero cambiar los datos de un producto para man
 npm test
 ```
 
+Captura de las pruebas automatizadas:
+
+![Pruebas automatizadas pasando](docs/img-14.png)
+
 ### Pruebas manuales (evidencia)
 
-**Caso 1: edición válida desde React.** En el catálogo pulsa el botón de editar de un producto, cambia el nombre o el precio, pulsa **Save changes** y verifica que el catálogo muestra el cambio. Recarga la página (`F5`) y comprueba que persiste.
+**Caso 1: edición válida desde React.** En el catálogo se pulsa el botón de editar de un producto, se cambia el nombre o el precio y se pulsa **Save changes**. El catálogo muestra el cambio y, al recargar con `F5`, persiste.
 
-<!-- TODO: captura de la pantalla de edición y del catálogo actualizado tras recargar -->
+Pantalla de edición con los cambios antes de guardar:
 
-**Caso 2: ID inexistente.** En Postman, `PUT http://localhost:3000/api/products/9999` con un cuerpo válido debe responder `404`. En React, abrir `http://localhost:5173/product/9999` muestra el mensaje "Producto no encontrado".
+![Pantalla de edición con cambios antes de guardar](docs/img-9.png)
 
-<!-- TODO: captura de Postman con el 404 y de la vista en React -->
+Catálogo con el cambio persistido tras recargar:
 
-**Caso 3: falla la edición.** Con la pantalla de edición abierta, provoca el error de una de estas formas:
+![Catálogo con el cambio persistido tras recargar](docs/img-10.png)
 
-1. Escribe un precio de `100000000` (supera el máximo) y guarda: la vista muestra "Datos de producto inválidos: El precio es demasiado alto".
-2. Elimina el producto desde Postman (`DELETE /api/products/:id`) y guarda: la vista muestra "Producto no encontrado".
-3. Detén el backend y guarda: la vista muestra "No se pudo conectar con el servidor".
+**Caso 2: ID inexistente.** Con REST Client (VS Code), `PUT http://localhost:3000/api/products/9999` con un cuerpo válido responde `404` con el mensaje "Producto no encontrado". En React, abrir `http://localhost:5173/product/9999` muestra el mismo mensaje.
 
-En los tres casos, "Last saved data" y el catálogo conservan el último dato confirmado.
+Respuesta `404` en REST Client:
 
-<!-- TODO: captura del error en pantalla con el dato guardado sin cambios -->
+![404 al editar un ID inexistente](docs/img-11.png)
+
+Vista de React con "Producto no encontrado":
+
+![Vista de React con Producto no encontrado](docs/img-12.png)
+
+**Caso 3: falla la edición.** Con la pantalla de edición abierta se escribió un precio de `100000000` (supera el máximo permitido) y se pulsó **Save changes**. La vista muestra la alerta "Datos de producto inválidos: El precio es demasiado alto", la tarjeta "Last saved data" conserva el nombre y el precio originales, y lo escrito queda en el formulario para corregirlo. El catálogo no cambia.
+
+![Error al editar con el último dato guardado intacto](docs/img-13.png)
