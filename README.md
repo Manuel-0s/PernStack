@@ -374,3 +374,59 @@ Content-Type: application/json
 Captura de la respuesta `400 Bad Request` devuelta por Zod:
 
 ![Validación 400 Bad Request con REST Client](docs/img-8.png)
+
+
+## HU03: Editar un producto
+
+Como responsable del catálogo, quiero cambiar los datos de un producto para mantener la información vigente.
+
+**Criterios de aceptación**
+
+- Una edición válida responde `200` y el cambio persiste al recargar.
+- Un ID inexistente recibe `404`.
+- Si falla la edición, la vista muestra el error y conserva el último dato confirmado en el catálogo.
+
+### Backend
+
+- `PUT /api/products/:id` valida el cuerpo con `updateProductDto` (los mismos campos que el alta) y responde:
+  - `200` con el producto actualizado.
+  - `400` si los datos son inválidos; no se modifica ningún registro.
+  - `404` si el producto no existe.
+- `GET /api/products/:id` ahora responde `404` cuando el producto no existe (antes devolvía `200` con `data` vacío). La pantalla de edición lo usa para cargar el producto.
+- Un ID que no puede existir (`abc`, `-1`, `0`, `99999999999`) también responde `404` en lugar de `500`, porque se valida antes de consultar PostgreSQL.
+- `backend/dtos/productDto.js` se ajustó a Zod 4 (los mensajes en español usan `error`) y agrega límites que coinciden con la tabla: nombre y URL de máximo 255 caracteres, precio máximo `99999999.99` con 2 decimales y URL con `http://` o `https://`.
+
+### Frontend
+
+- La ruta `/product/:id` (botón de editar de cada tarjeta) abre `ProductPage`, que muestra a la izquierda el **último dato guardado** y a la derecha el formulario de edición.
+- `useProductStore` agrega `fetchProduct` y `updateProduct`. El catálogo (`products`) y `currentProduct` solo se actualizan cuando el backend confirma el cambio.
+- Si el guardado falla (validación, ID inexistente o servidor caído), la vista muestra el mensaje de error, el dato guardado y el catálogo no cambian, y lo escrito queda en el formulario para corregirlo. El botón **Restore** vuelve al dato confirmado.
+- Si el guardado es exitoso, se muestra una notificación y se regresa al catálogo, que ya trae el dato actualizado desde la base.
+
+### Pruebas automatizadas
+
+`backend/tests/products.update.test.js` cubre: edición `200` con persistencia al consultar de nuevo, `404` con ID inexistente y con IDs inválidos (sin `500`), `400` con precio inválido verificando que el dato anterior no cambia, y `404` en `GET /api/products/:id`.
+
+```powershell
+npm test
+```
+
+### Pruebas manuales (evidencia)
+
+**Caso 1: edición válida desde React.** En el catálogo pulsa el botón de editar de un producto, cambia el nombre o el precio, pulsa **Save changes** y verifica que el catálogo muestra el cambio. Recarga la página (`F5`) y comprueba que persiste.
+
+<!-- TODO: captura de la pantalla de edición y del catálogo actualizado tras recargar -->
+
+**Caso 2: ID inexistente.** En Postman, `PUT http://localhost:3000/api/products/9999` con un cuerpo válido debe responder `404`. En React, abrir `http://localhost:5173/product/9999` muestra el mensaje "Producto no encontrado".
+
+<!-- TODO: captura de Postman con el 404 y de la vista en React -->
+
+**Caso 3: falla la edición.** Con la pantalla de edición abierta, provoca el error de una de estas formas:
+
+1. Escribe un precio de `100000000` (supera el máximo) y guarda: la vista muestra "Datos de producto inválidos: El precio es demasiado alto".
+2. Elimina el producto desde Postman (`DELETE /api/products/:id`) y guarda: la vista muestra "Producto no encontrado".
+3. Detén el backend y guarda: la vista muestra "No se pudo conectar con el servidor".
+
+En los tres casos, "Last saved data" y el catálogo conservan el último dato confirmado.
+
+<!-- TODO: captura del error en pantalla con el dato guardado sin cambios -->

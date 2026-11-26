@@ -1,5 +1,16 @@
 import { sql } from "../config/db.js";
-import { createProductDto } from "../dtos/productDto.js";
+import { createProductDto, updateProductDto } from "../dtos/productDto.js";
+
+// Un ID válido es un entero positivo que cabe en la columna SERIAL (int4).
+// Cualquier otro valor (abc, -1, 99999999999) no puede existir en la tabla.
+const parseId = (raw) => {
+    if (!/^\d+$/.test(raw)) return null;
+    const id = Number(raw);
+    return id > 0 && id <= 2147483647 ? id : null;
+};
+
+const notFound = (res) =>
+    res.status(404).json({ success: false, message: 'Producto no encontrado' });
 //CRUD operations for products
 
 export const getAllProducts = async (req, res) => {
@@ -17,12 +28,16 @@ export const getAllProducts = async (req, res) => {
 }
 
 export const getProduct = async (req, res) => {
-    const { id } = req.params;
+    const id = parseId(req.params.id);
+    if (id === null) return notFound(res);
+
     try {
         const product = await sql`
             SELECT * FROM products
             WHERE id = ${id}
         `;
+
+        if (product.length === 0) return notFound(res);
 
         res.status(200).json({ success: true, data: product[0] });
     } catch (error) {
@@ -59,12 +74,20 @@ export const createProduct = async (req, res) => {
 }
 
 export const updateProduct = async (req, res) => {
-    const { id } = req.params;
-    const { name, image, price } = req.body;
+    const id = parseId(req.params.id);
+    if (id === null) return notFound(res);
 
-    if (!name || !image || !price) {
-        return res.status(400).json({ success: false, message: 'All fields are required' });
+    const parsed = updateProductDto.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({
+            success: false,
+            message: "Datos de producto inválidos",
+            errors: parsed.error.flatten().fieldErrors,
+        });
     }
+
+    const { name, image, price } = parsed.data;
 
     try {
         const product = await sql`
@@ -74,13 +97,8 @@ export const updateProduct = async (req, res) => {
             RETURNING *
         `;
 
-        if (product.length === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Product not found' 
-            });
-        }
-        
+        if (product.length === 0) return notFound(res);
+
         res.status(200).json({ success: true, data: product[0] });
     } catch (error) {
         console.log('Error updating product:', error);
