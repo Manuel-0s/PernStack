@@ -440,3 +440,54 @@ Vista de React con "Producto no encontrado":
 **Caso 3: falla la edición.** Con la pantalla de edición abierta se escribió un precio de `100000000` (supera el máximo permitido) y se pulsó **Save changes**. La vista muestra la alerta "Datos de producto inválidos: El precio es demasiado alto", la tarjeta "Last saved data" conserva el nombre y el precio originales, y lo escrito queda en el formulario para corregirlo. El catálogo no cambia.
 
 ![Error al editar con el último dato guardado intacto](docs/img-13.png)
+
+## HU04: Eliminar un producto
+
+Como responsable del catálogo, quiero eliminar un producto para retirar los artículos que ya no están disponibles.
+
+**Criterios de aceptación**
+
+- Si se cancela el diálogo de confirmación, el producto permanece en el catálogo y no se envía la solicitud.
+- Si se confirma la eliminación, la API responde `200` y el producto desaparece del catálogo, incluso después de recargar la página.
+- Si el ID no existe, la API responde `404`.
+- Si la solicitud de eliminación falla, el producto permanece en el estado del catálogo y se muestra una notificación de error.
+
+### Backend
+
+- `DELETE /api/products/:id` elimina el producto y responde `200` con el producto eliminado en `data`.
+- Si no existe un producto con ese ID, responde `404`.
+
+### Frontend
+
+- Cada tarjeta del catálogo tiene un botón de eliminar que abre un diálogo de confirmación con el estilo del tema activo de DaisyUI.
+- Si el usuario cancela, no se envía la solicitud y el producto permanece en la lista.
+
+![Diálogo de confirmación para eliminar un producto](docs/img-15.png)
+
+- Si ocurre un error, el producto no se quita del estado del catálogo y se muestra una notificación de error.
+
+![Notificación de error al intentar eliminar un producto](docs/img-16.png)
+
+- Si confirma, `useProductStore.deleteProduct` envía la solicitud `DELETE`; si tiene éxito, quita el producto del catálogo y muestra una notificación de confirmación.
+
+![Eliminación exitosa del producto](docs/img-17.png)
+
+### Pruebas automatizadas
+
+`backend/tests/products.delete.test.js` crea un producto de prueba, verifica que `DELETE /api/products/:id` responda `200` y comprueba que una consulta posterior responda `404`.
+
+```powershell
+npm test -- --runInBand backend/tests/products.delete.test.js
+```
+
+![Prueba automatizada de eliminación completada](docs/img-18.png)
+
+### Prueba manual
+
+**Comprobar la eliminación en la API:** en Postman, se envia `DELETE http://localhost:3000/api/products/41`. La respuesta es `200` e incluye el producto eliminado en `data`.
+
+![Respuesta 200 al eliminar un producto en Postman](docs/img-19.png)
+
+Después, se envia `GET http://localhost:3000/api/products/41`. La respuesta es `404`, porque el producto ya no existe.
+
+![Respuesta 404 al consultar el producto eliminado](docs/img-20.png)

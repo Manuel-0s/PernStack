@@ -1,9 +1,12 @@
+import { useRef } from "react";
 import { EditIcon, Trash2Icon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useProductStore } from "../store/useProductStore";
 
 function ProductCard({ product }) {
   const { deleteProduct } = useProductStore();
+  const deleteDialogRef = useRef(null);
+
   return (
     <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
       {/* PRODUCT IMAGE */}
@@ -27,13 +30,46 @@ function ProductCard({ product }) {
           </Link>
 
           <button
-            className="btn btn-sm btn-error  btn-outline"
-            onClick={() => deleteProduct(product.id)}
+            className="btn btn-sm btn-error  btn-outline onClick"
+            onClick={() => deleteDialogRef.current?.showModal()}
           >
             <Trash2Icon className="size-4" />
           </button>
         </div>
       </div>
+
+      <dialog
+        ref={deleteDialogRef}
+        className="modal"
+        aria-labelledby={`delete-product-title-${product.id}`}
+      >
+        <div className="modal-box">
+          <h3 id={`delete-product-title-${product.id}`} className="text-lg font-bold">
+            ¿Eliminar producto?
+          </h3>
+          <p className="py-4">
+            ¿Estás seguro de que deseas eliminar <strong>{product.name}</strong>? Esta acción no se
+            puede deshacer.
+          </p>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn btn-ghost">Cancelar</button>
+            </form>
+            <button
+              className="btn btn-error"
+              onClick={() => {
+                deleteDialogRef.current?.close();
+                deleteProduct(product.id);
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button aria-label="Cerrar diálogo">Cerrar</button>
+        </form>
+      </dialog>
     </div>
   );
 }

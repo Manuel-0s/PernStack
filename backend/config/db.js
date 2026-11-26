@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const { PGUSER, PGPASSWORD, PGHOST, PGDATABASE } = process.env;
 

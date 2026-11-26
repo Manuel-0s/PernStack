@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import productRoutes from './routes/productRoutes.js';
 import { sql }from './config/db.js';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
