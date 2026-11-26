@@ -447,10 +447,9 @@ Como responsable del catálogo, quiero eliminar un producto para retirar los art
 
 **Criterios de aceptación**
 
-- Al eliminar un producto existente, la API responde `200` y el producto deja de estar disponible.
-- Si el producto no existe, la API responde `404`.
-- En el catálogo, al pulsar el botón de eliminar, la tarjeta desaparece cuando el backend confirma la eliminación.
-- Si la solicitud falla, se muestra una notificación de error.
+- Cancelar en la confirmación de React conserva el producto
+- Confirmar devuelve 200 y retira el producto de la lista, también después de recargar
+- Si el ID ya no existe, la API devuelve 404
 
 ### Backend
 
@@ -459,8 +458,9 @@ Como responsable del catálogo, quiero eliminar un producto para retirar los art
 
 ### Frontend
 
-- Cada tarjeta del catálogo tiene un botón de eliminar.
-- `useProductStore.deleteProduct` envía la solicitud `DELETE`; si tiene éxito, quita el producto del catálogo y muestra una notificación de confirmación.
+- Cada tarjeta del catálogo tiene un botón de eliminar que abre un diálogo de confirmación con el estilo del tema activo de DaisyUI.
+- Si el usuario cancela, no se envía la solicitud y el producto permanece en la lista.
+- Si confirma, `useProductStore.deleteProduct` envía la solicitud `DELETE`; si tiene éxito, quita el producto del catálogo y muestra una notificación de confirmación.
 - Si ocurre un error, el producto no se quita del estado del catálogo y se muestra una notificación de error.
 
 ### Pruebas automatizadas
@@ -475,4 +475,4 @@ npm test -- --runInBand backend/tests/products.delete.test.js
 
 En Postman, envía `DELETE http://localhost:3000/api/products/<ID>` usando el ID de un producto de prueba. La respuesta debe ser `200` e incluir el producto eliminado en `data`; al consultar después `GET http://localhost:3000/api/products/<ID>`, debe responder `404`.
 
-En la interfaz, pulsa el botón de eliminar de un producto de prueba. La tarjeta debe desaparecer del catálogo y debe mostrarse la notificación de éxito.
+En la interfaz, pulsa el botón de eliminar de un producto de prueba. Al pulsar **Cancelar** en el diálogo, el producto debe permanecer en el catálogo. Vuelve a pulsar el botón y confirma con **Eliminar**: la tarjeta debe desaparecer y debe mostrarse la notificación de éxito. Recarga la página para comprobar que el producto continúa ausente.
