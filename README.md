@@ -440,3 +440,39 @@ Vista de React con "Producto no encontrado":
 **Caso 3: falla la edición.** Con la pantalla de edición abierta se escribió un precio de `100000000` (supera el máximo permitido) y se pulsó **Save changes**. La vista muestra la alerta "Datos de producto inválidos: El precio es demasiado alto", la tarjeta "Last saved data" conserva el nombre y el precio originales, y lo escrito queda en el formulario para corregirlo. El catálogo no cambia.
 
 ![Error al editar con el último dato guardado intacto](docs/img-13.png)
+
+## HS04: Eliminar un producto
+
+Como responsable del catálogo, quiero eliminar un producto para retirar los artículos que ya no están disponibles.
+
+**Criterios de aceptación**
+
+- Al eliminar un producto existente, la API responde `200` y el producto deja de estar disponible.
+- Si el producto no existe, la API responde `404`.
+- En el catálogo, al pulsar el botón de eliminar, la tarjeta desaparece cuando el backend confirma la eliminación.
+- Si la solicitud falla, se muestra una notificación de error.
+
+### Backend
+
+- `DELETE /api/products/:id` elimina el producto y responde `200` con el producto eliminado en `data`.
+- Si no existe un producto con ese ID, responde `404`.
+
+### Frontend
+
+- Cada tarjeta del catálogo tiene un botón de eliminar.
+- `useProductStore.deleteProduct` envía la solicitud `DELETE`; si tiene éxito, quita el producto del catálogo y muestra una notificación de confirmación.
+- Si ocurre un error, el producto no se quita del estado del catálogo y se muestra una notificación de error.
+
+### Pruebas automatizadas
+
+`backend/tests/products.delete.test.js` crea un producto para la prueba, verifica que `DELETE /api/products/:id` responda `200` y comprueba que una consulta posterior responda `404`.
+
+```powershell
+npm test -- --runInBand backend/tests/products.delete.test.js
+```
+
+### Prueba manual
+
+En Postman, envía `DELETE http://localhost:3000/api/products/<ID>` usando el ID de un producto de prueba. La respuesta debe ser `200` e incluir el producto eliminado en `data`; al consultar después `GET http://localhost:3000/api/products/<ID>`, debe responder `404`.
+
+En la interfaz, pulsa el botón de eliminar de un producto de prueba. La tarjeta debe desaparecer del catálogo y debe mostrarse la notificación de éxito.

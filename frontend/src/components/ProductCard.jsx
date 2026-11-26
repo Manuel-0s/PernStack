@@ -27,7 +27,7 @@ function ProductCard({ product }) {
           </Link>
 
           <button
-            className="btn btn-sm btn-error  btn-outline"
+            className="btn btn-sm btn-error  btn-outline onClick"
             onClick={() => deleteProduct(product.id)}
           >
             <Trash2Icon className="size-4" />
